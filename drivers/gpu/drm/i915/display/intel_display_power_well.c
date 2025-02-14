@@ -66,7 +66,7 @@ struct i915_power_well_ops {
 			   struct i915_power_well *power_well);
 };
 
-static const struct i915_power_well_instance *
+const struct i915_power_well_instance *
 i915_power_well_instance(const struct i915_power_well *power_well)
 {
 	return &power_well->desc->instances->list[power_well->instance_idx];

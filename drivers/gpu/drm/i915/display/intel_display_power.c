@@ -23,6 +23,7 @@
 #include "intel_pcode.h"
 #include "intel_pmdemand.h"
 #include "intel_pps_regs.h"
+#include "intel_quirks.h"
 #include "intel_snps_phy.h"
 #include "skl_watermark.h"
 #include "skl_watermark_regs.h"
@@ -493,7 +494,13 @@ __intel_display_power_get_domain(struct intel_display *display,
 		return;
 
 	for_each_power_domain_well(display, power_well, domain)
+	{
+		if (domain == POWER_DOMAIN_INIT &&
+		    intel_has_quirk(display, QUIRK_NO_VLV_DISP_PW_DPIO_CMN_BC_INIT) &&
+		    i915_power_well_instance(power_well)->id == VLV_DISP_PW_DPIO_CMN_BC)
+			continue;
 		intel_power_well_get(display, power_well);
+	}
 
 	power_domains->domain_use_count[domain]++;
 }
@@ -589,7 +596,13 @@ __intel_display_power_put_domain(struct intel_display *display,
 	power_domains->domain_use_count[domain]--;
 
 	for_each_power_domain_well_reverse(display, power_well, domain)
+	{
+		if (domain == POWER_DOMAIN_INIT &&
+		    intel_has_quirk(display, QUIRK_NO_VLV_DISP_PW_DPIO_CMN_BC_INIT) &&
+		    i915_power_well_instance(power_well)->id == VLV_DISP_PW_DPIO_CMN_BC)
+			continue;
 		intel_power_well_put(display, power_well);
+	}
 }
 
 static void __intel_display_power_put(struct intel_display *display,

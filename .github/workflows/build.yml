@@ -1,0 +1,51 @@
+name: kernel build CI test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  install_dep:
+    runs-on: ununtu-latest
+    steps:
+    - name: install packages
+      run: |
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo apt-get update
+        sudo apt-get install -y bc binutils build-essential bison dwarves flex git gnupg2 gzip libelf-dev libncurses5-dev libssl-dev openssl pahole perl-base rsync tar xz-utilsccache ccache
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+    - name: set ccache
+      run: ccache -M 10
+    - name: setup workdir
+      run: |
+        sudo mkdir -p /workdir/out
+        sudo chown $USER:$GROUPS /workdir
+        sudo chown $USER:$GROUPS /workdir/out
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v4.2.0
+      with:
+        path: ~/.cache
+        key: kernel
+    - name: configure
+      run: make O="/workdir/out" x86_64_defconfig
+    - name: make
+      run: make -j$(nproc) LOCALVERSION= CC="ccache gcc" O="/workdir/out" deb-pkg
+
+  upload_file:
+    runs-on: ubuntu-latest
+    steps:
+    - name: list file
+      run: |
+        ls -lh /workdir
+    - uses: actions/upload-artifact@v4.6.0
+      with:
+        name: kernel bin
+        path: /workdir/linux-*
